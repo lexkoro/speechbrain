@@ -234,23 +234,6 @@ if __name__ == "__main__":
         overrides=overrides,
     )
 
-    from iemocap_prepare import prepare_data  # noqa E402
-
-    # Data preparation, to be run on only one process.
-    sb.utils.distributed.run_on_main(
-        prepare_data,
-        kwargs={
-            "data_original": hparams["data_original"],
-            "data_transformed": hparams["data_folder"],
-            "save_json_train": hparams["train_annotation"],
-            "save_json_valid": hparams["valid_annotation"],
-            "save_json_test": hparams["test_annotation"],
-            "split_ratio": [80, 10, 10],
-            "different_speakers": hparams["different_speakers"],
-            "seed": hparams["seed"],
-        },
-    )
-
     # Create dataset objects "train", "valid", and "test".
     datasets = dataio_prep(hparams)
 
