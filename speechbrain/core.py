@@ -707,9 +707,12 @@ class Brain:
                 )
 
             print(len(dataset))
-            emotion_labels = np.array(
-                [item["emo_encoded"].item() for item in dataset]
-            )
+            print(type(dataset))
+            print(dataset[0])
+            with dataset.output_keys_as(["emo_encoded"]):
+                emotion_labels = np.array(
+                    [item["emo_encoded"].item() for item in dataset]
+                )
             print(emotion_labels[:10])
             unique_emotion_labels = np.unique(emotion_labels).tolist()
             speaker_ids = [
