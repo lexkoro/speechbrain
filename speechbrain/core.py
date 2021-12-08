@@ -18,6 +18,7 @@ import inspect
 import pathlib
 import argparse
 import tempfile
+import numpy as np
 import speechbrain as sb
 from datetime import date
 from enum import Enum, auto
@@ -35,6 +36,7 @@ from speechbrain.dataio.dataloader import LoopedLoader
 from speechbrain.dataio.dataloader import SaveableDataLoader
 from speechbrain.dataio.sampler import DistributedSamplerWrapper
 from speechbrain.dataio.sampler import ReproducibleRandomSampler
+from speechbrain.dataio.sampler import ReproducibleWeightedRandomSampler
 
 logger = logging.getLogger(__name__)
 DEFAULT_LOG_CONFIG = os.path.dirname(os.path.abspath(__file__))
@@ -703,7 +705,32 @@ class Brain:
                     "Cannot specify both shuffle=True "
                     "and a sampler in loader_kwargs"
                 )
-            sampler = ReproducibleRandomSampler(dataset)
+
+            print(len(dataset))
+            emotion_labels = np.array(
+                [item["emo_encoded"].item() for item in dataset]
+            )
+            print(emotion_labels[:10])
+            unique_emotion_labels = np.unique(emotion_labels).tolist()
+            speaker_ids = [
+                unique_emotion_labels.index(l) for l in emotion_labels
+            ]
+            label_count = np.array(
+                [
+                    len(np.where(emotion_labels == l)[0])
+                    for l in unique_emotion_labels
+                ]
+            )
+            weight_speaker = 1.0 / label_count
+            dataset_samples_weight = torch.from_numpy(
+                np.array([weight_speaker[l] for l in speaker_ids])
+            ).double()
+
+            sampler = ReproducibleWeightedRandomSampler(
+                dataset_samples_weight,
+                len(dataset_samples_weight),
+                replacement=True,
+            )
             self.train_sampler = sampler
             loader_kwargs["sampler"] = self.train_sampler
             # Delete the shuffle flag, since you cannot specify both a sampler and
@@ -752,6 +779,8 @@ class Brain:
                 "Cannot automatically solve distributed sampling "
                 "for IterableDataset."
             )
+
+        print(self.train_sampler)
         return loader_kwargs
 
     def on_fit_start(self):
